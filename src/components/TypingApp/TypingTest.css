@@ -63,10 +63,15 @@ body {
 }
 
 .incorrect {
-  color: #fb4934;
+  color: #ca4754;
 }
 
 .letter {
   display: inline-block;
   position: relative;
+}
+
+.word .extra-letters .extra {
+  color: #7e2a33;
+  opacity: 0.8;
 }

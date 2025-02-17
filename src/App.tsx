@@ -1,12 +1,12 @@
 import "./App.css";
-import TypingTest from "./components/TypingTest";
+import TypingApp from "./components/TypingApp2/TypingApp";
 
 function App() {
   return (
     <>
       <div className="app">
         <h1>Typing Speed Test</h1>
-        <TypingTest />
+        <TypingApp />
       </div>
     </>
   );

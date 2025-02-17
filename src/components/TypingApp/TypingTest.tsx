@@ -30,6 +30,8 @@ function TypingTest(): React.ReactElement {
   const [isTestCompleted, setIsTestCompleted] = useState(false);
   const [timer, setTimer] = useState(0);
   const [wpm, setWpm] = useState(0);
+  const [typedWord, setTypedWord] = useState("");
+  const [extraLetters, setExtraLetters] = useState("");
 
   const letterRefs = useRef<(HTMLSpanElement | null)[][]>(
     Array(sampleWords.length)
@@ -39,16 +41,18 @@ function TypingTest(): React.ReactElement {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (isTestCompleted) return;
 
-    const currentWord = sampleWords[currentWordIndex];
-    const typedWord = e.target.value.trim();
+    if (e.key === " ") {
+      e.preventDefault();
 
-    updateLetterColors(typedWord, currentWord);
+      const currentWord = sampleWords[currentWordIndex];
+      const trimmedWord = typedWord.trim();
 
-    if (typedWord === currentWord) {
-      setCorrectWords((prev) => prev + 1);
+      if (trimmedWord === currentWord) {
+        setCorrectWords((prev) => prev + 1);
+      }
 
       if (currentWordIndex === sampleWords.length - 1) {
         endTest();
@@ -56,12 +60,31 @@ function TypingTest(): React.ReactElement {
       }
 
       setCurrentWordIndex((prev) => prev + 1);
-      e.target.value = "";
+      setTypedWord("");
+      setExtraLetters("");
     }
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isTestCompleted) return;
+
+    const wordValue = e.target.value;
+    const currentWord = sampleWords[currentWordIndex];
+
+    setTypedWord(wordValue);
+
+    if (wordValue.length > currentWord.length) {
+      setExtraLetters(wordValue.slice(currentWord.length));
+    } else {
+      setExtraLetters("");
+    }
+
+    updateLetterColors(wordValue, currentWord);
   };
 
   const updateLetterColors = (typedWord: string, currentWord: string): void => {
     const letters = letterRefs.current[currentWordIndex];
+
     if (letters) {
       letters.forEach((letter, index) => {
         if (!letter) return;
@@ -70,6 +93,7 @@ function TypingTest(): React.ReactElement {
         const currentLetter = currentWord[index];
 
         letter.classList.remove("correct", "incorrect");
+
         if (typedLetter === currentLetter) {
           letter.classList.add("correct");
         } else if (typedLetter) {
@@ -84,23 +108,17 @@ function TypingTest(): React.ReactElement {
     setCorrectWords(0);
     setIsTestCompleted(false);
     setTimer(Date.now());
+    setTypedWord("");
+    setExtraLetters("");
 
     if (inputRef.current) {
-      inputRef.current.value = "";
       inputRef.current.disabled = false;
       inputRef.current.focus();
     }
-
-    letterRefs.current.forEach((wordRefs) => {
-      wordRefs.forEach((letter) => {
-        if (letter) letter.classList.remove("correct", "incorrect");
-      });
-    });
   };
 
   const endTest = (): void => {
     setIsTestCompleted(true);
-    console.log("Test completed");
     const totalTime = (Date.now() - timer) / 1000;
     const wpm = Math.round((correctWords / totalTime) * 60);
     setWpm(wpm);
@@ -110,10 +128,20 @@ function TypingTest(): React.ReactElement {
     <div className="typing-test">
       <div className="word-container">
         {sampleWords.map((word, wordIndex) => (
-          <div className="word" key={wordIndex}>
+          <div
+            className={`word ${wordIndex === currentWordIndex ? "active" : ""}`}
+            key={wordIndex}
+          >
             {word.split("").map((letter, letterIndex) => (
               <span
-                className="letter"
+                className={`letter ${
+                  wordIndex === currentWordIndex &&
+                  typedWord[letterIndex] === letter
+                    ? "correct"
+                    : wordIndex === currentWordIndex && typedWord[letterIndex]
+                    ? "incorrect"
+                    : ""
+                }`}
                 key={letterIndex}
                 ref={(el) => {
                   if (el) {
@@ -124,6 +152,15 @@ function TypingTest(): React.ReactElement {
                 {letter}
               </span>
             ))}
+            {wordIndex === currentWordIndex && extraLetters && (
+              <span className="extra-letters">
+                {extraLetters.split("").map((extra, index) => (
+                  <span key={index} className="extra incorrect">
+                    {extra}
+                  </span>
+                ))}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -131,8 +168,10 @@ function TypingTest(): React.ReactElement {
         <input
           id="typing-input"
           type="text"
+          value={typedWord}
           ref={inputRef}
-          onChange={handleTyping}
+          onKeyDown={handleKeyDown}
+          onInput={handleInput}
           placeholder="Type the current word here..."
           disabled
         />
